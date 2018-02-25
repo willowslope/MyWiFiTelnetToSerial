@@ -97,7 +97,7 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
 <tr><td>STA </td><td>**myssid</td><td>**mypass</td><td>**myIP</td></tr>\
 </table>\
 </body></html>";
-/*
+
   if (websvr.hasArg("Reset_ID")){myssid[0]=0;mypass[0]=0;
     //set_EEPROM();
   }
@@ -110,11 +110,11 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
   html.replace("**ssid",ssid);
   html.replace("**pass",pass);
   html.replace("**IP",WiFi.softAPIP().toString());
-  html.replace("**myssid",myssid);
-  html.replace("**mypass",mypass);
-  if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
-  else html.replace("**myIP","Disconnect");
-  */
+//  html.replace("**myssid",myssid);
+//  html.replace("**mypass",mypass);
+//  if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
+//  else html.replace("**myIP","Disconnect");
+
   websvr.send(200, "text/html", html);
 }
 
