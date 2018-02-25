@@ -7,7 +7,7 @@
 #include <ESP8266WiFi.h>
 //#include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
-//#include <EEPROM.h>
+#include <EEPROM.h>
 // ****************************************************************
 // * Const, RAM
 // ****************************************************************
@@ -26,10 +26,10 @@ ESP8266WebServer websvr(80);  //web server
 
 const char *ssid = "ESP_OBDII";
 const char *pass = "";
-//char myssid[33];
-//char mypass[64];
+char myssid[33];
+char mypass[64];
 
-//#define EEPROM_NUM (sizeof(myssid)+sizeof(mypass))
+#define EEPROM_NUM (sizeof(myssid)+sizeof(mypass))
 
 // ****************************************************************
 // * Prototype
@@ -38,8 +38,8 @@ const char *pass = "";
 // ****************************************************************
 // * support
 // ****************************************************************
-/*
- 
+
+/* 
  bool check_char(char *p, unsigned int num)
 {
   return(true);
@@ -59,9 +59,9 @@ void check_ssid(void){
   if(!check_char(myssid,sizeof(myssid))) strcpy(myssid,"");
   if(!check_char(mypass,sizeof(mypass))) strcpy(mypass,"");
 }
-
+*/
 void set_EEPROM(void){
-  check_ssid();
+//  check_ssid();
   unsigned char data[EEPROM_NUM];
   unsigned char *pd = data;
   int i;
@@ -70,7 +70,7 @@ void set_EEPROM(void){
   for (i = 0; i < EEPROM_NUM; i++) {EEPROM.write(i, data[i]);}
   EEPROM.commit();
 }
-*/
+
 // ****************************************************************
 // * HomePage
 // ****************************************************************
@@ -99,20 +99,20 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
 </body></html>";
 
   if (websvr.hasArg("Reset_ID")){
-    //myssid[0]=0;mypass[0]=0;
-    //set_EEPROM();
+    myssid[0]=0;mypass[0]=0;
+    set_EEPROM();
   }
   if (websvr.hasArg("Set_ID")) {
-//    if (websvr.hasArg("myssid")) strcpy(myssid,websvr.arg("myssid").c_str());
-//    if (websvr.hasArg("mypass")) strcpy(mypass,websvr.arg("mypass").c_str());
-//    set_EEPROM();
+    if (websvr.hasArg("myssid")) strcpy(myssid,websvr.arg("myssid").c_str());
+    if (websvr.hasArg("mypass")) strcpy(mypass,websvr.arg("mypass").c_str());
+    set_EEPROM();
   }
 
   html.replace("**ssid",ssid);
   html.replace("**pass",pass);
   html.replace("**IP",WiFi.softAPIP().toString());
-//  html.replace("**myssid",myssid);
-//  html.replace("**mypass",mypass);
+  html.replace("**myssid",myssid);
+  html.replace("**mypass",mypass);
 //  if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
 //  else html.replace("**myIP","Disconnect");
 
@@ -146,7 +146,7 @@ void handleNotFound() {
 void setup_ram(void){
         time_old = millis();
 }
-/*
+
 // ------------------------------------
 void setup_eeprom(void) {
   //EEPROM
@@ -157,9 +157,9 @@ void setup_eeprom(void) {
   for (i = 0; i < EEPROM_NUM; i++) {data[i] = EEPROM.read(i);}
   for (i=0;i<sizeof(myssid);i++){myssid[i] = *pd; pd++;}
   for (i=0;i<sizeof(mypass);i++){mypass[i] = *pd; pd++;}
-  check_ssid();
+//  check_ssid();
 }
-*/
+
 // ------------------------------------
 void setup_com(void){
   Serial.begin(38400);
@@ -202,8 +202,8 @@ void setup_mDNS(void) {
 */
 // ------------------------------------
 void setup() {
-//  setup_eeprom();
-//  Serial.println("eeprom setup");
+  setup_eeprom();
+  Serial.println("eeprom setup");
   setup_ram();
   setup_com();
   Serial.println("com setup");
