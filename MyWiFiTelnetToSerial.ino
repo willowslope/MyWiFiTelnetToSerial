@@ -98,12 +98,13 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
 </table>\
 </body></html>";
 
-  if (websvr.hasArg("Reset_ID")){myssid[0]=0;mypass[0]=0;
+  if (websvr.hasArg("Reset_ID")){
+    //myssid[0]=0;mypass[0]=0;
     //set_EEPROM();
   }
   if (websvr.hasArg("Set_ID")) {
-    if (websvr.hasArg("myssid")) strcpy(myssid,websvr.arg("myssid").c_str());
-    if (websvr.hasArg("mypass")) strcpy(mypass,websvr.arg("mypass").c_str());
+//    if (websvr.hasArg("myssid")) strcpy(myssid,websvr.arg("myssid").c_str());
+//    if (websvr.hasArg("mypass")) strcpy(mypass,websvr.arg("mypass").c_str());
 //    set_EEPROM();
   }
 
