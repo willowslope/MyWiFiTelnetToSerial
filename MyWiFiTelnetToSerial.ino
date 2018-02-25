@@ -14,8 +14,8 @@
 //const char *HostName = "ESP_OBDII";
 
 //Sleep Timer 30min
-//#define SLEEP_TIMER (unsigned long)(30*60*1000)
-//unsigned long time_old = 0;
+#define SLEEP_TIMER (unsigned long)(30*60*1000)
+unsigned long time_old = 0;
 
 //how many clients should be able to telnet to this ESP8266
 #define MAX_SRV_CLIENTS 1
@@ -141,10 +141,11 @@ void handleNotFound() {
 // ****************************************************************
 // * setup
 // ****************************************************************
-/*
+
 void setup_ram(void){
         time_old = millis();
 }
+/*
 // ------------------------------------
 void setup_eeprom(void) {
   //EEPROM
@@ -202,7 +203,7 @@ void setup_mDNS(void) {
 void setup() {
 //  setup_eeprom();
 //  Serial.println("eeprom setup");
-//  setup_ram();
+  setup_ram();
   setup_com();
   Serial.println("com setup");
   Serial.println(WiFi.softAPIP().toString());
@@ -214,7 +215,6 @@ void setup() {
 // ****************************************************************
 // * loop
 // ****************************************************************
-/*
 void loop_timer(void){
   //check Sleep Timer
   if ((unsigned long)(millis()-time_old)>SLEEP_TIMER)
@@ -223,7 +223,6 @@ void loop_timer(void){
     ESP.deepSleep(0); 
   }
 }
-*/
 // ------------------------------------
 void loop_AP(void){
   uint8_t i;
@@ -249,7 +248,7 @@ void loop_Telnet2Serial(void){
   for(i = 0; i < MAX_SRV_CLIENTS; i++){
     if (serverClients[i] && serverClients[i].connected()){
       if(serverClients[i].available()){
- //       time_old = millis();
+        time_old = millis();
         //get data from the telnet client and push it to the UART
         while(serverClients[i].available()) Serial.write(serverClients[i].read());
       }
@@ -278,7 +277,7 @@ void loop() {
   loop_Telnet2Serial();
   loop_AP();
   loop_WebSvr();
-//  loop_timer();
+  loop_timer();
 }
 
 
