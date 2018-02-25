@@ -5,17 +5,17 @@
 // ****************************************************************
 
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
+//#include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
-#include <EEPROM.h>
+//#include <EEPROM.h>
 // ****************************************************************
 // * Const, RAM
 // ****************************************************************
-const char *HostName = "ESP_OBDII";
+//const char *HostName = "ESP_OBDII";
 
 //Sleep Timer 30min
-#define SLEEP_TIMER (unsigned long)(30*60*1000)
-unsigned long time_old = 0;
+//#define SLEEP_TIMER (unsigned long)(30*60*1000)
+//unsigned long time_old = 0;
 
 //how many clients should be able to telnet to this ESP8266
 #define MAX_SRV_CLIENTS 1
@@ -24,14 +24,12 @@ WiFiClient serverClients[MAX_SRV_CLIENTS];
 
 ESP8266WebServer websvr(80);  //web server
 
-char ssid[33];
-char pass[64];
-#define SSID_DEFAULT "ESP_OBDII"
-#define PASS_DEFAULT ""
-char myssid[33];
-char mypass[64];
+const char *ssid = "ESP_OBDII";
+const char *pass = "";
+//char myssid[33];
+//char mypass[64];
 
-#define EEPROM_NUM (sizeof(ssid)+sizeof(pass)+sizeof(myssid)+sizeof(mypass))
+//#define EEPROM_NUM (sizeof(myssid)+sizeof(mypass))
 
 // ****************************************************************
 // * Prototype
@@ -40,8 +38,11 @@ char mypass[64];
 // ****************************************************************
 // * support
 // ****************************************************************
-bool check_char(char *p, unsigned int num)
+/*
+ 
+ bool check_char(char *p, unsigned int num)
 {
+  return(true);
   unsigned int i;
   for(i=0;i<num;i++)
   {
@@ -55,8 +56,6 @@ bool check_char(char *p, unsigned int num)
   }
 }
 void check_ssid(void){
-  if(!check_char(  ssid,sizeof(ssid)  )) strcpy(ssid,strcat(SSID_DEFAULT,String(ESP.getChipId(),HEX).c_str()));
-  if(!check_char(  pass,sizeof(pass)  )) strcpy(pass  ,"");
   if(!check_char(myssid,sizeof(myssid))) strcpy(myssid,"");
   if(!check_char(mypass,sizeof(mypass))) strcpy(mypass,"");
 }
@@ -66,18 +65,18 @@ void set_EEPROM(void){
   unsigned char data[EEPROM_NUM];
   unsigned char *pd = data;
   int i;
-  for (i=0;i<sizeof(ssid)  ; i++)  {*pd = ssid[i];   pd++;}
-  for (i=0;i<sizeof(pass)  ; i++)  {*pd = pass[i];   pd++;}
   for (i=0;i<sizeof(myssid); i++)  {*pd = myssid[i]; pd++;}
   for (i=0;i<sizeof(mypass); i++)  {*pd = mypass[i]; pd++;}
   for (i = 0; i < EEPROM_NUM; i++) {EEPROM.write(i, data[i]);}
   EEPROM.commit();
 }
-
+*/
 // ****************************************************************
 // * HomePage
 // ****************************************************************
 void handleTopPage() {
+  Serial.println("TopPage");
+  
   String html = "\
 <!DOCTYPE html><html><head>\
 <title>Setting</title>\
@@ -85,9 +84,6 @@ void handleTopPage() {
 </head><body>\
 <H1>ESP_OBDII Setting</H1>\
 <form name='inputform' action='' method='POST'>\
-<H2>AP Setting</H2>\
-SSID:<input type='text' name='ssid' maxlength='32' value='**ssid'><br>\
-PASS:<input type='text' name='pass' maxlength='63' value='**pass'><br>\
 <H2>STA Setting</H2>\
 SSID:<input type='text' name='myssid' maxlength='32' value='**myssid'><br>\
 PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
@@ -101,14 +97,14 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
 <tr><td>STA </td><td>**myssid</td><td>**mypass</td><td>**myIP</td></tr>\
 </table>\
 </body></html>";
-
-  if (websvr.hasArg("Reset_ID")){ssid[0]=0;pass[0]=0;myssid[0]=0;mypass[0]=0;set_EEPROM();}
+/*
+  if (websvr.hasArg("Reset_ID")){myssid[0]=0;mypass[0]=0;
+    //set_EEPROM();
+  }
   if (websvr.hasArg("Set_ID")) {
-    if (websvr.hasArg("ssid")) strcpy(ssid,websvr.arg("ssid").c_str());
-    if (websvr.hasArg("pass")) strcpy(pass,websvr.arg("pass").c_str());
     if (websvr.hasArg("myssid")) strcpy(myssid,websvr.arg("myssid").c_str());
     if (websvr.hasArg("mypass")) strcpy(mypass,websvr.arg("mypass").c_str());
-    set_EEPROM();
+//    set_EEPROM();
   }
 
   html.replace("**ssid",ssid);
@@ -118,6 +114,7 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
   html.replace("**mypass",mypass);
   if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
   else html.replace("**myIP","Disconnect");
+  */
   websvr.send(200, "text/html", html);
 }
 
@@ -137,11 +134,16 @@ void handleNotFound() {
     message += " " + websvr.argName(i) + ": " + websvr.arg(i) + "\n";
   }
   websvr.send(404, "text/plain", message);
+
+  Serial.println("NotFound");
+
 }
 // ****************************************************************
 // * setup
 // ****************************************************************
+/*
 void setup_ram(void){
+        time_old = millis();
 }
 // ------------------------------------
 void setup_eeprom(void) {
@@ -151,22 +153,24 @@ void setup_eeprom(void) {
   unsigned char *pd = data;
   int i;
   for (i = 0; i < EEPROM_NUM; i++) {data[i] = EEPROM.read(i);}
-  for (i=0;i<sizeof(ssid);i++){ssid[i] = *pd; pd++;}
-  for (i=0;i<sizeof(pass);i++){pass[i] = *pd; pd++;}
   for (i=0;i<sizeof(myssid);i++){myssid[i] = *pd; pd++;}
   for (i=0;i<sizeof(mypass);i++){mypass[i] = *pd; pd++;}
   check_ssid();
 }
+*/
 // ------------------------------------
 void setup_com(void){
   Serial.begin(38400);
 
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.begin(myssid,mypass);
+  WiFi.mode(WIFI_AP);
+//  WiFi.mode(WIFI_AP_STA);
+//  if (strlen(myssid)>1)
+//    WiFi.begin(myssid,mypass);
   
   WiFi.softAPConfig(IPAddress(192, 168, 0, 10), IPAddress(192, 168, 0, 10), IPAddress(255, 255, 255, 0));
+  WiFi.softAP(ssid);
 //  WiFi.softAP(ssid, pass);
-  WiFi.softAP(SSID_DEFAULT);
+//  WiFi.softAP(SSID_DEFAULT);
 
   server.begin();
   server.setNoDelay(true);
@@ -177,37 +181,49 @@ void setup_http(void) {
   websvr.onNotFound(handleNotFound);
   websvr.begin();
 }
+/*
 // ------------------------------------
 void setup_mDNS(void) {
   WiFi.hostname(HostName);
   if (!MDNS.begin(HostName,WiFi.localIP())) {
-    Serial.println("Error setting up MDNS responder!");
+//    Serial.println("Error setting up MDNS responder!");
+    MDNS.addService("telnet", "tcp", 35000);
+    MDNS.addService("http", "tcp", 80);
   }
 //  if (!MDNS.begin(HostName.c_str(),WiFi.softAPIP())) {
 //    Serial.println("Error setting up MDNS responder!2");
 //  }
-  Serial.println("mDNS responder started");
-  MDNS.addService("telnet", "tcp", 35000);
-  MDNS.addService("http", "tcp", 80);
+//  Serial.println("mDNS responder started");
+//  MDNS.addService("telnet", "tcp", 35000);
+//  MDNS.addService("http", "tcp", 80);
 }
+*/
 // ------------------------------------
 void setup() {
-  setup_eeprom();
-  setup_ram();
+//  setup_eeprom();
+//  Serial.println("eeprom setup");
+//  setup_ram();
   setup_com();
+  Serial.println("com setup");
+  Serial.println(WiFi.softAPIP().toString());
   setup_http();
-  setup_mDNS();
+  Serial.println("html setup");
+  //setup_mDNS();
+//  Serial.println("mDNS setup");
 }
 // ****************************************************************
 // * loop
 // ****************************************************************
+/*
 void loop_timer(void){
   //check Sleep Timer
   if ((unsigned long)(millis()-time_old)>SLEEP_TIMER)
   {
+    Serial.println("deepSleep");
     ESP.deepSleep(0); 
   }
 }
+*/
 // ------------------------------------
 void loop_AP(void){
   uint8_t i;
@@ -233,7 +249,7 @@ void loop_Telnet2Serial(void){
   for(i = 0; i < MAX_SRV_CLIENTS; i++){
     if (serverClients[i] && serverClients[i].connected()){
       if(serverClients[i].available()){
-        time_old = millis();
+ //       time_old = millis();
         //get data from the telnet client and push it to the UART
         while(serverClients[i].available()) Serial.write(serverClients[i].read());
       }
@@ -262,7 +278,7 @@ void loop() {
   loop_Telnet2Serial();
   loop_AP();
   loop_WebSvr();
-  loop_timer();
+//  loop_timer();
 }
 
 
