@@ -15,7 +15,8 @@
 
 //Sleep Timer 30min
 #define SLEEP_TIMER (unsigned long)(30*60*1000)
-unsigned long time_old = 0;
+unsigned long timer_sleep = 0;
+//unsigned long timer_1s = 0;
 
 //how many clients should be able to telnet to this ESP8266
 #define MAX_SRV_CLIENTS 1
@@ -113,8 +114,8 @@ PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
   html.replace("**IP",WiFi.softAPIP().toString());
   html.replace("**myssid",myssid);
   html.replace("**mypass",mypass);
-//  if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
-//  else html.replace("**myIP","Disconnect");
+  if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
+  else html.replace("**myIP","Disconnect");
 
   websvr.send(200, "text/html", html);
 }
@@ -144,7 +145,7 @@ void handleNotFound() {
 // ****************************************************************
 
 void setup_ram(void){
-        time_old = millis();
+        timer_sleep = millis();
 }
 
 // ------------------------------------
@@ -164,17 +165,35 @@ void setup_eeprom(void) {
 void setup_com(void){
   Serial.begin(38400);
 
-  WiFi.mode(WIFI_AP);
-//  WiFi.mode(WIFI_AP_STA);
-//  if (strlen(myssid)>1)
-//    WiFi.begin(myssid,mypass);
-  
+//  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);
+  Serial.println("set WIFI_AP_STA mode");
+  WiFi.begin(myssid,mypass);
+  Serial.print("connect to:");
+  Serial.println(myssid);
+  Serial.println(myssid);
+  unsigned long t_time = millis(); 
+  while(WiFi.status() != WL_CONNECTED)
+  {
+    if (millis() > t_time + 15000){      //5秒だけ待つ
+      WiFi.disconnect();
+      break;
+    }
+    Serial.print(".");
+    delay(500);
+  }
+  if(WiFi.status() == WL_CONNECTED) {Serial.print("connect:IP=");Serial.println(WiFi.localIP());}
+  else Serial.println("disconnect");
+
   WiFi.softAPConfig(IPAddress(192, 168, 0, 10), IPAddress(192, 168, 0, 10), IPAddress(255, 255, 255, 0));
-  WiFi.softAP(ssid);
-//  WiFi.softAP(ssid, pass);
+//  WiFi.softAP(ssid);
+  WiFi.softAP(ssid, pass);
 //  WiFi.softAP(SSID_DEFAULT);
+  Serial.print("start softAP:");
+  Serial.println(ssid);
 
   server.begin();
+  Serial.println("start Web");
   server.setNoDelay(true);
 }
 // ------------------------------------
@@ -218,11 +237,19 @@ void setup() {
 // ****************************************************************
 void loop_timer(void){
   //check Sleep Timer
-  if ((unsigned long)(millis()-time_old)>SLEEP_TIMER)
+  if ((unsigned long)(millis()-timer_sleep)>SLEEP_TIMER)
   {
     Serial.println("deepSleep");
     ESP.deepSleep(0); 
   }
+//  if ((unsigned long)(millis()-timer_1s)>1000)
+//  {
+//    timer_1s = millis();
+//    if (WiFi.status() != WL_CONNECTED) {
+//      WiFi.reconnect();
+//      Serial.println("reconnect");
+//    }
+//  }
 }
 // ------------------------------------
 void loop_AP(void){
@@ -249,7 +276,7 @@ void loop_Telnet2Serial(void){
   for(i = 0; i < MAX_SRV_CLIENTS; i++){
     if (serverClients[i] && serverClients[i].connected()){
       if(serverClients[i].available()){
-        time_old = millis();
+        timer_sleep = millis();
         //get data from the telnet client and push it to the UART
         while(serverClients[i].available()) Serial.write(serverClients[i].read());
       }
