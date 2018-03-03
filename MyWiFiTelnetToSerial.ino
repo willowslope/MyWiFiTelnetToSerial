@@ -1,17 +1,17 @@
 // ****************************************************************
 // MyWiFiTelnetToSerial
-//  Ver0.01 2018.2.25
+//  Ver0.02 2018.3.3
 //  copyright Sakayanagi
 // ****************************************************************
 
 #include <ESP8266WiFi.h>
-//#include <ESP8266mDNS.h>
+#include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
 // ****************************************************************
-// * Const, RAM
+// * Const, RAM, define
 // ****************************************************************
-//const char *HostName = "ESP_OBDII";
+const char *HostName = "ESP_OBDII";
 
 //Sleep Timer 30min
 #define SLEEP_TIMER (unsigned long)(30*60*1000)
@@ -25,12 +25,18 @@ WiFiClient serverClients[MAX_SRV_CLIENTS];
 
 ESP8266WebServer websvr(80);  //web server
 
-const char *ssid = "ESP_OBDII";
-const char *pass = "";
-char myssid[33];
-char mypass[64];
+String ap_ssid = "ESP_OBDII";
+String ap_pass = "";
+char sta_ssid[33];
+char sta_pass[64];
 
-#define EEPROM_NUM (sizeof(myssid)+sizeof(mypass))
+#define EEPROM_NUM (sizeof(sta_ssid)+sizeof(sta_pass))
+
+#if 0
+#define DEBUG_PRINT(x) Serial.println(x);
+#else
+#define DEBUG_PRINT(x)
+#endif
 
 // ****************************************************************
 // * Prototype
@@ -39,35 +45,12 @@ char mypass[64];
 // ****************************************************************
 // * support
 // ****************************************************************
-
-/* 
- bool check_char(char *p, unsigned int num)
-{
-  return(true);
-  unsigned int i;
-  for(i=0;i<num;i++)
-  {
-    if(*p<'-') return(false);
-    if(*p>'z') return(false);
-    if(*p==0) {
-      if(i>0) return(true);
-      else return(false);
-    }
-    p++;
-  }
-}
-void check_ssid(void){
-  if(!check_char(myssid,sizeof(myssid))) strcpy(myssid,"");
-  if(!check_char(mypass,sizeof(mypass))) strcpy(mypass,"");
-}
-*/
 void set_EEPROM(void){
-//  check_ssid();
   unsigned char data[EEPROM_NUM];
   unsigned char *pd = data;
   int i;
-  for (i=0;i<sizeof(myssid); i++)  {*pd = myssid[i]; pd++;}
-  for (i=0;i<sizeof(mypass); i++)  {*pd = mypass[i]; pd++;}
+  for (i=0;i<sizeof(sta_ssid); i++)  {*pd = sta_ssid[i]; pd++;}
+  for (i=0;i<sizeof(sta_pass); i++)  {*pd = sta_pass[i]; pd++;}
   for (i = 0; i < EEPROM_NUM; i++) {EEPROM.write(i, data[i]);}
   EEPROM.commit();
 }
@@ -76,8 +59,6 @@ void set_EEPROM(void){
 // * HomePage
 // ****************************************************************
 void handleTopPage() {
-  Serial.println("TopPage");
-  
   String html = "\
 <!DOCTYPE html><html><head>\
 <title>Setting</title>\
@@ -86,36 +67,31 @@ void handleTopPage() {
 <H1>ESP_OBDII Setting</H1>\
 <form name='inputform' action='' method='POST'>\
 <H2>STA Setting</H2>\
-SSID:<input type='text' name='myssid' maxlength='32' value='**myssid'><br>\
-PASS:<input type='text' name='mypass' maxlength='63' value='**mypass'><br>\
+SSID:<input type='text' name='sta_ssid' maxlength='32' value='**sta_ssid'><br>\
+PASS:<input type='text' name='sta_pass' maxlength='63' value='**sta_pass'><br>\
 <br><input type='submit' name='Set_ID' value='Set'>\
-<br><input type='submit' name='Reset_ID' value='Reset'>\
 </form><hr>\
 <H2>Status</H2>\
 <table border='1'>\
-<tr><th>mode</th><th>SSID    </th><th>PASS    </th><th>IP</th></tr>\
-<tr><td>AP  </td><td>**ssid  </td><td>**pass  </td><td>**IP</td></tr>\
-<tr><td>STA </td><td>**myssid</td><td>**mypass</td><td>**myIP</td></tr>\
+<tr><th>mode</th><th>SSID      </th><th>PASS      </th><th>IP</th></tr>\
+<tr><td>AP  </td><td>**ap_ssid </td><td>**ap_pass </td><td>**ap_IP </td></tr>\
+<tr><td>STA </td><td>**sta_ssid</td><td>**sta_pass</td><td>**sta_IP</td></tr>\
 </table>\
 </body></html>";
 
-  if (websvr.hasArg("Reset_ID")){
-    myssid[0]=0;mypass[0]=0;
-    set_EEPROM();
-  }
   if (websvr.hasArg("Set_ID")) {
-    if (websvr.hasArg("myssid")) strcpy(myssid,websvr.arg("myssid").c_str());
-    if (websvr.hasArg("mypass")) strcpy(mypass,websvr.arg("mypass").c_str());
+    if (websvr.hasArg("sta_ssid")) strcpy(sta_ssid,websvr.arg("sta_ssid").c_str());
+    if (websvr.hasArg("sta_pass")) strcpy(sta_pass,websvr.arg("sta_pass").c_str());
     set_EEPROM();
   }
 
-  html.replace("**ssid",ssid);
-  html.replace("**pass",pass);
-  html.replace("**IP",WiFi.softAPIP().toString());
-  html.replace("**myssid",myssid);
-  html.replace("**mypass",mypass);
-  if(WiFi.status() == WL_CONNECTED) html.replace("**myIP",WiFi.localIP().toString());
-  else html.replace("**myIP","Disconnect");
+  html.replace("**ap_ssid",ap_ssid);
+  html.replace("**ap_pass",ap_pass);
+  html.replace("**ap_IP",WiFi.softAPIP().toString());
+  html.replace("**sta_ssid",sta_ssid);
+  html.replace("**sta_pass",sta_pass);
+  if(WiFi.status() == WL_CONNECTED) html.replace("**sta_IP",WiFi.localIP().toString());
+  else html.replace("**sta_IP","Disconnect");
 
   websvr.send(200, "text/html", html);
 }
@@ -136,9 +112,6 @@ void handleNotFound() {
     message += " " + websvr.argName(i) + ": " + websvr.arg(i) + "\n";
   }
   websvr.send(404, "text/plain", message);
-
-  Serial.println("NotFound");
-
 }
 // ****************************************************************
 // * setup
@@ -146,6 +119,7 @@ void handleNotFound() {
 
 void setup_ram(void){
         timer_sleep = millis();
+        ap_ssid = ap_ssid + "_" + String(ESP.getChipId(),HEX);
 }
 
 // ------------------------------------
@@ -156,44 +130,53 @@ void setup_eeprom(void) {
   unsigned char *pd = data;
   int i;
   for (i = 0; i < EEPROM_NUM; i++) {data[i] = EEPROM.read(i);}
-  for (i=0;i<sizeof(myssid);i++){myssid[i] = *pd; pd++;}
-  for (i=0;i<sizeof(mypass);i++){mypass[i] = *pd; pd++;}
-//  check_ssid();
+  for (i=0;i<sizeof(sta_ssid);i++){sta_ssid[i] = *pd; pd++;}
+  for (i=0;i<sizeof(sta_pass);i++){sta_pass[i] = *pd; pd++;}
 }
 
 // ------------------------------------
 void setup_com(void){
   Serial.begin(38400);
-
-//  WiFi.mode(WIFI_AP);
-  WiFi.mode(WIFI_AP_STA);
-  Serial.println("set WIFI_AP_STA mode");
-  WiFi.begin(myssid,mypass);
-  Serial.print("connect to:");
-  Serial.println(myssid);
-  Serial.println(myssid);
-  unsigned long t_time = millis(); 
-  while(WiFi.status() != WL_CONNECTED)
-  {
-    if (millis() > t_time + 15000){      //5秒だけ待つ
-      WiFi.disconnect();
-      break;
-    }
-    Serial.print(".");
-    delay(500);
+}
+// ------------------------------------
+void setup_mDNS(void) {
+  WiFi.hostname(HostName);
+  if (!MDNS.begin(HostName,WiFi.localIP())) {
+    MDNS.addService("telnet", "tcp", 35000);
+    MDNS.addService("http", "tcp", 80);
   }
-  if(WiFi.status() == WL_CONNECTED) {Serial.print("connect:IP=");Serial.println(WiFi.localIP());}
-  else Serial.println("disconnect");
+}
+// ------------------------------------
+void setup_wifi(void){
+  if (strlen(sta_ssid)>0){
+    DEBUG_PRINT("APSTAmode")
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.begin(sta_ssid,sta_pass);
+ 
+    unsigned long t_time = millis(); 
+    while(WiFi.status() != WL_CONNECTED)
+    {
+      if (millis() > t_time + 15000){      //15秒だけ待つ
+        WiFi.disconnect();
+        break;
+      }
+      delay(500);
+    }
+    if(WiFi.status() == WL_CONNECTED){
+      setup_mDNS();
+    }
+  }
+  else{
+    DEBUG_PRINT("APmode")
+    WiFi.mode(WIFI_AP);
+  }
 
   WiFi.softAPConfig(IPAddress(192, 168, 0, 10), IPAddress(192, 168, 0, 10), IPAddress(255, 255, 255, 0));
-//  WiFi.softAP(ssid);
-  WiFi.softAP(ssid, pass);
-//  WiFi.softAP(SSID_DEFAULT);
-  Serial.print("start softAP:");
-  Serial.println(ssid);
-
+  WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
+}
+// ------------------------------------
+void setup_telnet(void){
   server.begin();
-  Serial.println("start Web");
   server.setNoDelay(true);
 }
 // ------------------------------------
@@ -202,35 +185,14 @@ void setup_http(void) {
   websvr.onNotFound(handleNotFound);
   websvr.begin();
 }
-/*
-// ------------------------------------
-void setup_mDNS(void) {
-  WiFi.hostname(HostName);
-  if (!MDNS.begin(HostName,WiFi.localIP())) {
-//    Serial.println("Error setting up MDNS responder!");
-    MDNS.addService("telnet", "tcp", 35000);
-    MDNS.addService("http", "tcp", 80);
-  }
-//  if (!MDNS.begin(HostName.c_str(),WiFi.softAPIP())) {
-//    Serial.println("Error setting up MDNS responder!2");
-//  }
-//  Serial.println("mDNS responder started");
-//  MDNS.addService("telnet", "tcp", 35000);
-//  MDNS.addService("http", "tcp", 80);
-}
-*/
 // ------------------------------------
 void setup() {
   setup_eeprom();
-  Serial.println("eeprom setup");
   setup_ram();
   setup_com();
-  Serial.println("com setup");
-  Serial.println(WiFi.softAPIP().toString());
+  setup_wifi();
+  setup_telnet();
   setup_http();
-  Serial.println("html setup");
-  //setup_mDNS();
-//  Serial.println("mDNS setup");
 }
 // ****************************************************************
 // * loop
@@ -239,20 +201,12 @@ void loop_timer(void){
   //check Sleep Timer
   if ((unsigned long)(millis()-timer_sleep)>SLEEP_TIMER)
   {
-    Serial.println("deepSleep");
+    DEBUG_PRINT("deepSleep");
     ESP.deepSleep(0); 
   }
-//  if ((unsigned long)(millis()-timer_1s)>1000)
-//  {
-//    timer_1s = millis();
-//    if (WiFi.status() != WL_CONNECTED) {
-//      WiFi.reconnect();
-//      Serial.println("reconnect");
-//    }
-//  }
 }
 // ------------------------------------
-void loop_AP(void){
+void loop_client(void){
   uint8_t i;
   //check if there are any new clients
   if (server.hasClient()){
@@ -303,7 +257,7 @@ void loop_WebSvr(void){
 // ------------------------------------
 void loop() {
   loop_Telnet2Serial();
-  loop_AP();
+  loop_client();
   loop_WebSvr();
   loop_timer();
 }
