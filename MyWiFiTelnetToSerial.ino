@@ -12,7 +12,6 @@
 // * Const, RAM, define
 // ****************************************************************
 const char *HostName = "ESP_OBDII";
-
 //Sleep Timer 30min
 #define SLEEP_TIMER (unsigned long)(30*60*1000)
 unsigned long timer_sleep = 0;
@@ -140,10 +139,12 @@ void setup_com(void){
 }
 // ------------------------------------
 void setup_mDNS(void) {
-  WiFi.hostname(HostName);
-  if (!MDNS.begin(HostName,WiFi.localIP())) {
-    MDNS.addService("telnet", "tcp", 35000);
-    MDNS.addService("http", "tcp", 80);
+  if(WiFi.status() == WL_CONNECTED){
+    WiFi.hostname(HostName);
+    if (!MDNS.begin(HostName,WiFi.localIP())) {
+      MDNS.addService("telnet", "tcp", 35000);
+      MDNS.addService("http", "tcp", 80);
+    }
   }
 }
 // ------------------------------------
@@ -162,11 +163,7 @@ void setup_wifi(void){
       }
       delay(500);
     }
-    if(WiFi.status() == WL_CONNECTED){
-      setup_mDNS();
-    }
-  }
-  else{
+  }else{
     DEBUG_PRINT("APmode")
     WiFi.mode(WIFI_AP);
   }
@@ -191,6 +188,7 @@ void setup() {
   setup_ram();
   setup_com();
   setup_wifi();
+  setup_mDNS();
   setup_telnet();
   setup_http();
 }
